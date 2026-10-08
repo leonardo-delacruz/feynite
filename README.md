@@ -12,15 +12,14 @@ Finite numerators can be constructed from the algorithms described in the refere
 - [Finite Feynman integrals](https://arxiv.org/pdf/2410.18014)
 
 
-The parametric tensor representation is based on Appendix A of the first reference
-
+The parametric tensor representation is based on Appendix A of the first reference. This package is based on the author’s Mathematica implementation,
+with some code adapted using AI tools. 
 
 
 
 ## Installation 
 
 From the project directory, run:
-
 
 `python -m pip install . `
 
