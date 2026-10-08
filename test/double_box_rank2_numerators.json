@@ -1,0 +1,4 @@
+[
+	"-1\/2*(s12*dL(k1, k2)) - s23*dL(k1, k2) + (s23*dL(k1, p1)*dL(k2, p1))\/s12 + (s23*dL(k1, p2)*dL(k2, p1))\/s12 - dL(k1, p3)*dL(k2, p1) + dL(k1, p1)*dL(k2, p2) + (s23*dL(k1, p1)*dL(k2, p2))\/s12 + dL(k1, p2)*dL(k2, p2) + (s23*dL(k1, p2)*dL(k2, p2))\/s12 + dL(k1, p3)*dL(k2, p2)",
+	"(s12*dL(k1, k2))\/2 + (s23*dL(k1, k2))\/2 - (s23*dL(k1, p1)*dL(k2, p1))\/s12 + dL(k1, p3)*dL(k2, p1) - dL(k1, p1)*dL(k2, p2) - (s23*dL(k1, p1)*dL(k2, p2))\/s12 - (s23*dL(k1, p1)*dL(k2, p3))\/s12 + dL(k1, p2)*dL(k2, p3) + (s23*dL(k1, p2)*dL(k2, p3))\/s12 + dL(k1, p3)*dL(k2, p3)"
+]
