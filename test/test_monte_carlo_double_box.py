@@ -63,15 +63,9 @@ dim=4
 parameters={s12: -7.0, s23:-1.0,  sp.Symbol('d'): float(dim)}
 
 
-#spec = dict(dens=dens, num_expr=num, kin=kin, rank=int(rank),
-    #            dim=dim, parameters=parameters)
-
-#res=make_polynomials(spec)
-
-
 run_numerator(num, kin=kin, dens=dens, parameters=parameters, dim=4,
                   rank=rank, tag=None, outfile='mc_results.txt',
                   train=(15, 50_000), nitn=5 , neval=200_000, adapt=False,
                   alpha=0.3, taming='tamed', sobol=None, workers=1,
-                  quiet=False, allow_divergent=False)
+                  quiet=False)
 
