@@ -42,6 +42,8 @@ From the project directory, run:
 
 `s = sp.Symbol('s')`
 
+`m=sp.Symbol('m')`
+
 
 ### vectors
 `k1, k2 = kmom(1), kmom(2)`
@@ -52,7 +54,7 @@ From the project directory, run:
 ###  kinematic rules
 `kin = {dL(p1, p1): s}`
 
-`dens= ([k1, k2, k1-k2+p1], [0,0,0],[k1,k2])`
+`dens= ([k1, k2, k1-k2+p1], [m,m,m],[k1,k2])`
 
 
 ### tensor representation
@@ -64,7 +66,17 @@ From the project directory, run:
 `print(polynomial_num)`
 
 
+### numerical integration
 
+`dim=2`
+
+`parameters={s:-1/7, sp.Symbol('d'): float(dim), m:1}`
+
+`num=sp.S.One`
+
+`res_integration=run_numerator(num, kin=kin, dens=dens, parameters=parameters, dim=dim,train=(25,50_000), nitn=20,neval=100_000, adapt=True, taming='tamed', quiet=True)`
+
+`print(res_integration["result"])`
 
 
 
