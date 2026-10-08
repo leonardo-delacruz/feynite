@@ -11,29 +11,21 @@ if _SRC not in sys.path:
 
 import sympy as sp
 
-import feynite
-
 from feynite.lorentz import dL
-from feynite.constants import (pmom, kmom, _kfun)
+from feynite.constants import (pmom, kmom)
 from timeit import default_timer as timer
 
 from feynite.monte_carlo_integration import  run_numerator
 
 import json
 
-#from num_evaluator import pol_numerator
-
 s12 = sp.Symbol('s12')
 s23 = sp.Symbol('s23')
-s34 = sp.Symbol('s34')
-s45 = sp.Symbol('s45')
-s51 = sp.Symbol('s51')
 
 
 ns = {
     "s12": s12, "s23": s23,
     "dL": dL,
-    "k": _kfun,           # so k(1) uses YOUR function class
     "k1": kmom(1),
     "k2": kmom(2),
     "p1": pmom(1),

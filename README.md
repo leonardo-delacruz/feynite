@@ -25,10 +25,41 @@ python -m pip install .
 
 
 
-
 ## Quick start
-import feynite
- 
+
+import sympy as sp
+
+from feynite.lorentz import dL
+from feynite.constants import (pmom, kmom) 
+
+
+from feynite.monte_carlo_integration import  run_numerator
+
+
+###  Invariants
+s = sp.Symbol('s')
+
+
+### vectors
+k1, k2 = kmom(1), kmom(2)
+p1  = pmom(1)
+
+
+###  kinematic rules
+kin = {dL(p1, p1): s}
+dens= ([k1, k2, k1-k2+p1], [0,0,0],[k1,k2])
+
+
+### tensor representation
+num=dL(k1,p1)**2
+
+polynomial_num=sum(pol_numerator(num,dens, kin, sparse=False))
+
+print(polynomial_num)
+
+
+
+
 
 
 
