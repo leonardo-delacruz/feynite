@@ -1,0 +1,166 @@
+import sympy as sp
+
+from constants import kmom, pmom, z, d, _kfun
+from lorentz import dL, lV, MT
+from sparse_tools import _sparse_zdict
+from num_evaluator import pol_numerator
+from timeit import default_timer as timer
+
+
+import json
+
+
+def write_polynomial_sum(num, dens, kin=None, path=None, no_gauge=True,
+                       highest_rank=None, slot=None, syms=None):
+    """write_polynomial_sum -- OOM-safe text export of the summed slot
+    polynomial(s) of the whole numerator.
+
+    The natural-looking save idiom
+
+        pol = polNumerator(num, dens, kin, sparse=False)
+        open(path, 'w').write(str(sum(pol)))
+
+    computes `pol` fine but is killed by the kernel OOM killer ("Killed",
+    exit 137) on the larger numerators, and the kill comes from the SAVE
+    line, not from the computation: `sum(pol)` re-canonicalizes the
+    accumulated Add once per slot, and `str()` of the resulting canonical
+    Add materialises the ordered-terms bookkeeping of the WHOLE
+    polynomial in RAM at once.  Measured on a rank-5 escalation of the
+    31-term double box (245k sparse mono-terms, 16 slots): pol 215 MB,
+    sum(pol) 247 MB, str(sum(pol)) > 2 GB -> Killed; THIS routine writes
+    the same polynomial in ~10 s at a ~170 MB footprint
+    (scripts/diag_save_oom.py).
+
+    The text is produced straight from the lean sparse dicts, never
+    touching a big SymPy expression:
+
+      1. `polNumerator(sparse=True)` -> per-slot {mono-key: coeff}
+         dicts (the engine's native output, ~0.4 kB per mono-term);
+      2. the slots are summed as plain dicts (exact, no SymPy);
+      3. `_sparse_zdict` projects every mono-key onto its z-exponent
+         row -- every non-z atom (s12, s23, d, ...) folds into the
+         coefficient, like z-terms combine, and deferred-scalar hidden
+         zeros cancel (the same projection `_slot_to_arrays` uses, so
+         the row set is exactly the sp.Poly row set);
+      4. each term is rendered with the ordinary SymPy string printer
+         and written to `path` progressively -- one term string in
+         memory at a time.
+
+    Arguments
+    ---------
+    num, dens, kin, no_gauge, highest_rank : exactly as in `polNumerator`.
+    slot : None (default) -> the SUM over all tensor-structure slots,
+        i.e. the polynomial str(sum(polNumerator(..., sparse=False)))
+        represents.  An integer s -> only structure s.
+    syms : the polynomial variables; default [z(1)..z(edges)] for
+        no_gauge=True and [z(1)..z(edges-1)] for no_gauge=False -- the
+        same defaults as polNumerator(output="arrays").
+    path : output file name.  If None, no file is written and the term
+        strings are returned as a GENERATOR (still streamed -- join or
+        consume incrementally, never sp.list(sp.Add)).
+
+    Returns
+    -------
+    The number of terms written (0 for a vanishing polynomial; the file
+    then contains the single character 0).
+
+    Notes
+    -----
+    * The file contains ONE line: the terms joined by ' + ', each in the
+      ordinary SymPy printer format -- read back with sympify(text,
+      locals={'z': z, ...}) in Python or ToExpression[...] in
+      Mathematica (same format as str() of the old route, so existing
+      parsers keep working).
+    * Content equals str(sum(polNumerator(..., sparse=False))) up to the
+      ORDER of the terms (lexicographic in the z-exponent rows here,
+      canonical Add order there); parse-back equality against the
+      batched pipeline is asserted in scripts/test_writepolynomialsum.py.
+    """
+    edges = len(dens[0])
+    if syms is None:
+        zall = [z(i + 1) for i in range(edges)]
+        syms_l = zall if no_gauge else zall[:-1]
+    else:
+        syms_l = [sp.sympify(s) for s in syms]
+
+    res = pol_numerator(num, dens, kin, no_gauge=no_gauge, sparse=True,
+                       highest_rank=highest_rank, slot=slot)
+    dicts = [res] if slot is not None else res
+    tot = {}
+    for D in dicts:
+        for k, c in D.items():
+            tot[k] = tot.get(k, 0) + c
+    tot = {k: c for k, c in tot.items() if c != 0}
+    zd = _sparse_zdict(tot, syms_l)
+
+    def _terms():
+        for row in sorted(zd):
+            yield str(sp.Mul(zd[row],
+                             *[s ** int(e) for s, e in zip(syms_l, row)
+                               if e]))
+
+    if path is None:
+        return _terms()
+    n = 0
+    with open(path, 'w') as f:
+        first = True
+        for t in _terms():
+            f.write(t if first else ' + ' + t)
+            first = False
+            n += 1
+        if first:
+            f.write('0')
+    return n
+
+start = timer()
+k1 = kmom(1)
+k2 = kmom(2)
+k3 = kmom(3)
+
+p1 = pmom(1)
+p2 = pmom(2)
+p3 = pmom(3)
+
+
+
+m = sp.Symbol('m')
+s12 = sp.Symbol('s12')
+s23 = sp.Symbol('s23')
+
+ns = {
+    "s12": s12, "s23": s23,
+    "dL": dL,
+    "k": _kfun,  # so k(1) uses YOUR function class
+    "k1": kmom(1),
+    "k2": kmom(2),
+    "p1": pmom(1),
+    "p2": pmom(2),
+    "p3": pmom(3)
+    # ... every symbol/function appearing in the strings
+}
+
+kin = {dL(p1, p1): 0, dL(p2, p2): 0, dL(p3, p3): 0, dL(p1, p2): s12 / 2, dL(p2, p3): s23 / 2,
+       dL(p1, p3): (-s12 - s23) / 2}
+dens = ([k1, k2,k3, k3-p1-p2-p3, k3-p1-p2, k2-p1-p2, k1 - p1- p2, k1 - p1,
+         k1 - k2, k2 -k3 ], [0, 0, 0, 0, 0, 0, 0,0,0,0], [k1, k2, k3])
+
+#denstriplebox = {{k[1], k[2], k[3], k[3] - p[1] - p[2] - p[3],
+#    k[3] - p[1] - p[2], k[2] - p[1] - p[2], k[1] - p[1] - p[2],
+#    k[1] - p[1], k[1] - k[2], k[2] - k[3]},
+ #  Table[0, {i, 1, 10}], {k[1], k[2], k[3]}};
+
+
+with open("/home/delacruz/Downloads/AIfiniteINtegrals/polynomials3boxpols.json", "r") as f:
+    expr_strings = json.load(f)
+
+nums = [sp.sympify(s, locals=ns, evaluate=False) for s in expr_strings]
+
+num=nums[1]
+
+
+res= sum(pol_numerator(num, dens, kin, sparse=False))
+write_polynomial_sum(num, dens, kin, "polynomialstriplebox.txt")
+
+
+end = timer()
+print(end - start)
